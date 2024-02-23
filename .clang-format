@@ -1,0 +1,27 @@
+---
+BasedOnStyle: Google
+ColumnLimit: 100
+IndentWidth: 4
+---
+Language: Cpp
+ConstructorInitializerIndentWidth: 6
+BreakConstructorInitializers: BeforeComma
+ContinuationIndentWidth: 6
+AlignAfterOpenBracket: AlwaysBreak
+AllowShortIfStatementsOnASingleLine: Never
+InsertNewlineAtEOF: true
+AlignArrayOfStructures: Right
+PenaltyReturnTypeOnItsOwnLine: 0
+DerivePointerAlignment: false
+PointerAlignment: Left
+AllowAllArgumentsOnNextLine: true
+AccessModifierOffset: -4
+SeparateDefinitionBlocks: Always
+AlignOperands: false  # Indent by ContinuationIndentWidth, do not align =, +, -, *, etc.
+SpacesInContainerLiterals: false
+BinPackArguments: false
+BinPackParameters: false
+IndentCaseLabels: true
+AllowAllParametersOfDeclarationOnNextLine: false
+BreakBeforeTernaryOperators: true
+...

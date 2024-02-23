@@ -1,0 +1,24 @@
+"""
+Build rules for the 'riccati' project.
+"""
+
+# https://registry.bazel.build/modules/googletest
+bazel_dep(name = "googletest", version = "1.14.0")
+
+# https://registry.bazel.build/modules/eigen
+bazel_dep(name = "eigen", version = "3.4.0.bcr.1")
+
+# https://registry.bazel.build/modules/abseil-cpp
+bazel_dep(name = "abseil-cpp", version = "20240116.3")
+
+# Hedron's Compile Commands Extractor for Bazel
+# https://github.com/hedronvision/bazel-compile-commands-extractor
+bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
+git_override(
+    module_name = "hedron_compile_commands",
+    commit = "204aa593e002cbd177d30f11f54cff3559110bb9",
+    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
+    # Replace the commit hash (above) with the latest,
+    # https://github.com/hedronvision/bazel-compile-commands-extractor/commits/main.
+    # Even better, set up Renovate and let it do the work for you (see "Suggestion: Updates" in the README).
+)

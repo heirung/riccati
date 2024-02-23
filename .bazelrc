@@ -1,0 +1,21 @@
+build --repo_env=CC=clang
+build --repo_env=CXX=clang++
+build --cxxopt=-std=c++20
+build --cxxopt=-stdlib=libc++
+build --cxxopt=-Werror=unused-variable
+build --cxxopt=-Werror=unused-parameter
+build --cxxopt=-Wall
+build --cxxopt=-Wunused-function
+build --cxxopt=-DACCELERATE_NEW_LAPACK  # for Accelerate/LAPACK
+build --cxxopt=-mmacos-version-min=13.3  # specified requirement in the LAPACK headers
+build --cxxopt=-Xclang
+build --cxxopt=-fno-cxx-modules
+# build --cxxopt=--verbose  # verbose clang output to terminal
+
+build:debug --compilation_mode=dbg  # -c dbg
+build:debug --spawn_strategy=local  # disable sandboxing
+build:debug --cxxopt=-O0
+build:debug --strip=never
+
+test --cache_test_results=no
+test --test_output=all
