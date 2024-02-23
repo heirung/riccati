@@ -1,0 +1,10 @@
+cc_test(
+    name = "test_lapack_wrappers",
+    size = "small",
+    srcs = ["test_lapack_wrappers.cpp"],
+    deps = [
+        "//riccati:lapack_wrappers",
+        "@eigen",
+        "@googletest//:gtest_main",
+    ],
+)

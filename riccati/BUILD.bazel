@@ -1,0 +1,17 @@
+cc_library(
+    name = "lapack_wrappers",
+    srcs = ["lapack_wrappers.cpp"],
+    hdrs = ["lapack_wrappers.h"],
+    linkopts = [
+        "-framework",
+        "Accelerate",
+    ],
+    visibility = [
+        "//:__pkg__",
+        "//test:__pkg__",
+    ],
+    deps = [
+        "@abseil-cpp//absl/status:statusor",
+        "@eigen",
+    ],
+)
