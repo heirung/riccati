@@ -1,16 +1,46 @@
+config_setting(
+    name = "macos",
+    constraint_values = ["@platforms//os:macos"],
+)
+
+config_setting(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+cc_library(
+    name = "lapack_backend",
+    linkopts = select({
+        ":macos": [
+            "-framework",
+            "Accelerate",
+        ],
+        ":linux": [
+            "-llapack",
+            "-lblas",
+        ],
+        "//conditions:default": [],
+    }),
+    visibility = ["//:__pkg__"],
+)
+
+cc_library(
+    name = "lapack_headers",
+    hdrs = ["lapack_compat.h"],
+    visibility = ["//:__pkg__"],
+)
+
 cc_library(
     name = "lapack_wrappers",
     srcs = ["lapack_wrappers.cpp"],
     hdrs = ["lapack_wrappers.h"],
-    linkopts = [
-        "-framework",
-        "Accelerate",
-    ],
     visibility = [
         "//:__pkg__",
         "//test:__pkg__",
     ],
     deps = [
+        ":lapack_backend",
+        ":lapack_headers",
         "@abseil-cpp//absl/status:statusor",
         "@eigen",
     ],

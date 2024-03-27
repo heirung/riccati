@@ -1,16 +1,50 @@
-build --repo_env=CC=clang
-build --repo_env=CXX=clang++
 build --cxxopt=-std=c++20
-build --cxxopt=-stdlib=libc++
 build --cxxopt=-Werror=unused-variable
 build --cxxopt=-Werror=unused-parameter
 build --cxxopt=-Wall
+build --cxxopt=-Wextra
 build --cxxopt=-Wunused-function
-build --cxxopt=-DACCELERATE_NEW_LAPACK  # for Accelerate/LAPACK
-build --cxxopt=-mmacos-version-min=13.3  # specified requirement in the LAPACK headers
-build --cxxopt=-Xclang
-build --cxxopt=-fno-cxx-modules
+
+build:macos --repo_env=CC=clang
+build:macos --repo_env=CXX=clang++
+build:macos --cxxopt=-stdlib=libc++
+build:macos --cxxopt=-DACCELERATE_NEW_LAPACK  # for Accelerate/LAPACK
+build:macos --cxxopt=-mmacos-version-min=13.3  # specified requirement in the LAPACK headers
+build:macos --cxxopt=-Xclang
+build:macos --cxxopt=-fno-cxx-modules
 # build --cxxopt=--verbose  # verbose clang output to terminal
+
+build:linux --repo_env=CC=/usr/bin/gcc
+build:linux --repo_env=CXX=/usr/bin/g++
+build:linux --cxxopt=-Wshadow
+build:linux --cxxopt=-fdiagnostics-color=always
+build:linux --cxxopt=--verbose  # verbose output
+build:linux --subcommands
+
+# Base sanitizer configuration with common settings
+build:sanitizer_base --strip=never
+build:sanitizer_base --copt=-O1
+build:sanitizer_base --copt=-g
+build:sanitizer_base --copt=-fno-omit-frame-pointer
+# build:sanitizer_base --copt=-DSANITIZER_BUILD
+
+build:asan --config=sanitizer_base
+build:asan --copt=-fsanitize=address
+build:asan --linkopt=-fsanitize=address
+build:asan --copt=-fsanitize=leak
+build:asan --linkopt=-fsanitize=leak
+# build:asan --copt=-DADDRESS_SANITIZER
+
+build:ubsan --config=sanitizer_base
+build:ubsan --copt=-fsanitize=undefined
+build:ubsan --linkopt=-fsanitize=undefined
+build:ubsan --copt=-fno-sanitize-recover=undefined
+# build:ubsan --copt=-DUNDEFINED_SANITIZER
+
+build:valgrind --config=linux
+build:valgrind --copt=-g
+build:valgrind --strip=never
+build:valgrind --run_under="valgrind --leak-check=full --error-exitcode=123"
 
 build:debug --compilation_mode=dbg  # -c dbg
 build:debug --spawn_strategy=local  # disable sandboxing

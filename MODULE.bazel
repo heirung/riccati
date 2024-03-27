@@ -2,6 +2,9 @@
 Build rules for the 'riccati' project.
 """
 
+# https://registry.bazel.build/modules/platforms
+bazel_dep(name = "platforms", version = "0.0.9")
+
 # https://registry.bazel.build/modules/googletest
 bazel_dep(name = "googletest", version = "1.14.0")
 

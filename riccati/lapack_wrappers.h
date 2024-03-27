@@ -1,9 +1,8 @@
 #pragma once
 
-#include <Accelerate/Accelerate.h>  // Includes LAPACK interfaces
-
 #include "Eigen/Dense"
 #include "absl/status/statusor.h"
+#include "lapack_compat.h"
 
 namespace lapack {
 enum class SelectorName {

@@ -1,8 +1,7 @@
 #include "lapack_wrappers.h"
 
-#include <Accelerate/Accelerate.h>  // Includes LAPACK interfaces
-
 #include "Eigen/Dense"
+#include "lapack_compat.h"
 
 namespace lapack {
 
