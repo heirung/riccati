@@ -5,6 +5,7 @@
 #include "lapack_compat.h"
 
 namespace lapack {
+// Non-internal enum for the eigenvalue selectors.
 enum class SelectorName {
     none,
     insideUnitCircle,
@@ -27,7 +28,12 @@ __LAPACK_bool RightHalfPlane(double* eigRe, double* eigIm);
 }  // namespace schur
 }  // namespace internal
 
-// `dgees` wrapper
+// Compute for a N x N real nonsymmetric matrix A the real Schur matrix, the Schur vectors, and the
+// eigenvalues (sorted, optionally). (Wrapper for `DGEES` -- Double precision, GEneral matrix,
+// Eigenvalues, Schur.) The real Schur decomposition for A is A = ZTZᵀ, where
+//   - T is the real Schur form (upper quasi-triangular, with 1x1 and 2x2 blocks), and
+//   - Z is an orthogonal matrix containing the Schur vectors (with Zᵀ = Z⁻¹).
+// Returns {T, Z, eigenvalues}.
 absl::StatusOr<std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::VectorXcd>>
 Schur(const Eigen::Ref<const Eigen::MatrixXd>& A, const SelectorName selector = SelectorName::none);
 }  // namespace lapack
