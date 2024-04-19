@@ -8,3 +8,14 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "test_riccati",
+    size = "small",
+    srcs = ["test_riccati.cpp"],
+    deps = [
+        "//riccati:riccati",
+        "@eigen",
+        "@googletest//:gtest_main",
+    ],
+)

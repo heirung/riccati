@@ -45,3 +45,18 @@ cc_library(
         "@eigen",
     ],
 )
+
+cc_library(
+    name = "riccati",
+    srcs = ["riccati.cpp"],
+    hdrs = ["riccati.h"],
+    visibility = [
+        "//:__pkg__",
+        "//test:__pkg__",
+    ],
+    deps = [
+        ":lapack_wrappers",
+        "@abseil-cpp//absl/status:statusor",
+        "@eigen",
+    ],
+)
