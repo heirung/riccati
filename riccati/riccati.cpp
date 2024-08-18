@@ -99,6 +99,88 @@ absl::StatusOr<Eigen::MatrixXd> SolveDare(
 }
 }  // namespace laub
 
+namespace van_dooren {
+namespace internal {
+std::pair<Eigen::MatrixXd, Eigen::MatrixXd> GetPencil(
+      const Eigen::Ref<const Eigen::MatrixXd>& A,
+      const Eigen::Ref<const Eigen::MatrixXd>& B,
+      const Eigen::Ref<const Eigen::MatrixXd>& Q,
+      const Eigen::Ref<const Eigen::MatrixXd>& R) {
+    const int n = A.cols();  // x in R^n
+    const int m = B.cols();  // u in R^m
+    const Eigen::MatrixXd E = Eigen::MatrixXd::Identity(n, n);
+    const int matrixDim = 2 * n + m;
+    // Construct the pencil 𝜆L - M.
+    Eigen::MatrixXd L = Eigen::MatrixXd::Zero(matrixDim, matrixDim);
+    Eigen::MatrixXd M = Eigen::MatrixXd::Zero(matrixDim, matrixDim);
+    //     [E,  0,  0]
+    // L = [0,  Aᵀ, 0]
+    //     [0, -Bᵀ, 0]
+    L.block(0, 0, n, n) = E;
+    L.block(n, n, n, n) = A.transpose();
+    L.block(2 * n, n, m, n) = -B.transpose();
+    //     [ A, 0,  B]
+    // M = [-Q, Eᵀ, 0]
+    //     [ 0, 0,  R]
+    M.block(0, 0, n, n) = A;
+    M.block(0, 2 * n, n, m) = B;
+    M.block(n, 0, n, n) = -Q;
+    M.block(n, n, n, n) = E.transpose();
+    M.block(2 * n, 2 * n, m, m) = R;
+    return {L, M};
+}
+}  // namespace internal
+
+absl::StatusOr<Eigen::MatrixXd> SolveDare(
+      const Eigen::Ref<const Eigen::MatrixXd>& A,
+      const Eigen::Ref<const Eigen::MatrixXd>& B,
+      const Eigen::Ref<const Eigen::MatrixXd>& Q,
+      const Eigen::Ref<const Eigen::MatrixXd>& R) {
+    const int n = B.rows();  // x in R^n
+    const int m = B.cols();  // u in R^m
+    if (A.cols() != A.rows() || A.rows() != n || Q.rows() != n || Q.cols() != n || R.rows() != m ||
+        R.cols() != m) {
+        return absl::InvalidArgumentError(
+              std::string(__func__) + ": at least one of A, B, Q, and R has incorrect dimensions.");
+    }
+    const auto [L, M] = internal::GetPencil(A, B, Q, R);
+    // Following Arnold and Laub (1984) Eq. (11): "Determine an orthogonal matrix P
+    // ((2n + m) x (2n + m)) such that
+    //            [B]   [0]
+    // [P₁₁, P₁₂] [0] = [0]
+    // [P₁₂, P₂₂] [R]   [R_bar]
+    // where R_bar is m x m and nonsingular. P can be found from a series of Householder
+    // transformations. The matrix P is then used to deflate the pencil." (Deflate out the infinite
+    // generalized eigenvalues.) This corresponds to finding U in Eq. (55) in Laub (1979), which
+    // reduces the rightmost block column (of width m) in Eq. (53) by zeroing out the top block (of
+    // height 2n).
+    const Eigen::HouseholderQR<Eigen::MatrixXd> qr(M.rightCols(m));
+    const Eigen::MatrixXd P =
+          qr.householderQ().transpose();  // "the m rightmost columns of M" = Q*R, P = Qᵀ
+    // Rather than using a permutation matrix to rearrange the transformation to the form above,
+    // just index appropriately: (accordingly, P.bottomRows(2 * n) * M.rightCols(m) is all zeroes.)
+    const Eigen::MatrixXd LDeflated = P.bottomRows(2 * n) * L.leftCols(2 * n);  // L tilde
+    const Eigen::MatrixXd MDeflated = P.bottomRows(2 * n) * M.leftCols(2 * n);  // M tilde
+
+    const auto maybeQz = lapack::Qz(MDeflated, LDeflated, lapack::SelectorName::insideUnitCircle);
+    if (!maybeQz.ok()) {
+        return maybeQz.status();
+    }
+    const auto [ordS, ordT, ordQ, ordZ, ordAlphaRe, ordAlphaIm, ordBeta] = maybeQz.value();
+
+    const Eigen::MatrixXd U_11 = ordZ.topLeftCorner(n, n);
+    const Eigen::MatrixXd U_21 = ordZ.bottomLeftCorner(n, n);
+    // X = U₂₁U₁₁⁻¹, so U₁₁ᵀX = U₂₁ᵀ (X is symmetric), or X = U₁₁⁻ᵀU₂₁ᵀ:
+    const absl::StatusOr<Eigen::MatrixXd> maybeX =
+          ::internal::SolveRiccatiFromSubspaces(U_11, U_21);
+    if (!maybeX.ok()) {
+        return maybeX.status();
+    }
+    const Eigen::MatrixXd X = maybeX.value();
+    return (X + X.transpose()) / 2.0;
+}
+}  // namespace van_dooren
+
 namespace riccati {
 
 absl::StatusOr<Eigen::MatrixXd> SolveDiscrete(
@@ -110,11 +192,14 @@ absl::StatusOr<Eigen::MatrixXd> SolveDiscrete(
     switch (method) {
         case Solver::Laub:
             return laub::SolveDare(A, B, Q, R);
+        case Solver::VanDooren:
+            return van_dooren::SolveDare(A, B, Q, R);
         default:
             return absl::InvalidArgumentError("Unknown method argument.");
     }
 }
 
+// Compute the residual of the discrete-time algebraic Riccati equation (DARE).
 Eigen::MatrixXd Residual(
       const Eigen::Ref<const Eigen::MatrixXd>& A,
       const Eigen::Ref<const Eigen::MatrixXd>& B,

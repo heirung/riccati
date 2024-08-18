@@ -3,6 +3,19 @@
 #include "Eigen/Dense"
 #include "absl/status/statusor.h"
 
+// This header declares functions to solve the discrete-time algebraic Riccati equation (DARE) using
+// the approaches by Laub (1979) and Van Dooren (1981). The implementations rely on the LAPACK
+// wrappers in `lapack_wrappers.h`. `laub::SolveDare` requires that both A and R be nonsingular,
+// whereas `van_dooren::SolveDare` does not. There's little to no error checking in these functions.
+//
+// Laub, A. J. A Schur method for solving algebraic Riccati equations. IEEE Transactions on
+//   Automatic Control, 24(6):913–921, 1979. https://doi.org/10.1109/TAC.1979.1102178
+// Van Dooren, P. M. A generalized eigenvalue approach for solving Riccati equations. SIAM Journal
+//   on Scientific and Statistical Computing, 2(2):121–135, 1981. https://doi.org/10.1137/0902010
+// Arnold, N. III, Laub, A. J. Generalized eigenproblem algorithms and software for algebraic
+//   Riccati equations. Proceedings of the IEEE, 72(12):1746–1754, 1984.
+//   https://doi.org/10.1109/PROC.1984.13083
+
 namespace laub {
 namespace internal {
 // Construct the symplectic matrix Z =
@@ -38,16 +51,42 @@ absl::StatusOr<Eigen::MatrixXd> SolveDare(
       const Eigen::Ref<const Eigen::MatrixXd>& R);
 }  // namespace laub
 
+namespace van_dooren {
+namespace internal {
+// Construct the matrices L and M in the matrix pencil 𝜆L - M for the discrete algebraic Riccati
+// equation. See Eq. (9) in Arnold and Laub (1984).
+// Returns {L, M}.
+std::pair<Eigen::MatrixXd, Eigen::MatrixXd> GetPencil(
+      const Eigen::Ref<const Eigen::MatrixXd>& A,
+      const Eigen::Ref<const Eigen::MatrixXd>& B,
+      const Eigen::Ref<const Eigen::MatrixXd>& Q,
+      const Eigen::Ref<const Eigen::MatrixXd>& R);
+}  // namespace internal
+
+// Solve the discrete-time algebraic Riccati equation (DARE) using the approach by Van Dooren
+// (1981). The implementation largely follows Arnold and Laub (1984). Assumes E = I and S = 0.
+// Van Dooren, P. M. A generalized eigenvalue approach for solving Riccati equations. SIAM Journal
+//   on Scientific and Statistical Computing, 2(2):121–135, 1981. https://doi.org/10.1137/0902010
+// Arnold, N. III, Laub, A. J. Generalized eigenproblem algorithms and software for algebraic
+//   Riccati equations. Proceedings of the IEEE, 72(12):1746–1754, 1984.
+//   https://doi.org/10.1109/PROC.1984.13083
+absl::StatusOr<Eigen::MatrixXd> SolveDare(
+      const Eigen::Ref<const Eigen::MatrixXd>& A,
+      const Eigen::Ref<const Eigen::MatrixXd>& B,
+      const Eigen::Ref<const Eigen::MatrixXd>& Q,
+      const Eigen::Ref<const Eigen::MatrixXd>& R);
+}  // namespace van_dooren
+
 namespace riccati {
 
-enum class Solver { Laub };
+enum class Solver { Laub, VanDooren };
 
 absl::StatusOr<Eigen::MatrixXd> SolveDiscrete(
       const Eigen::Ref<const Eigen::MatrixXd>& A,
       const Eigen::Ref<const Eigen::MatrixXd>& B,
       const Eigen::Ref<const Eigen::MatrixXd>& Q,
       const Eigen::Ref<const Eigen::MatrixXd>& R,
-      Solver method);
+      Solver method = Solver::VanDooren);
 
 // Compute the (matrix) residual of the discrete-time algebraic Riccati equation (DARE). The
 // alternative form produces `NAN`s if R is singular.
